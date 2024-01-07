@@ -7,3 +7,5 @@
 [submodule "projects/mpm"]
 	path = projects/mpm
 	url = git@github.com:RootlessGrass/taichi_mpm.git
+	branch = NGF
+

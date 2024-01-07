@@ -59,6 +59,10 @@ struct RigidBody {
   PositionFunctionType pos_func;
   RotationFunctionType rot_func;
 
+  // added: Force and torque on rigid bodies' center of mass
+  Vector rigid_force_tmp, rigid_torque_tmp;
+  Vector rigid_force, rigid_torque;
+
   TC_IO_DECL {
     TC_IO(codimensional, frictions, restitution, mesh_to_centroid, mass,
           inv_mass);
@@ -71,6 +75,8 @@ struct RigidBody {
     TC_IO(id, rotation_axis);
     TC_IO(mesh);
     TC_IO(pos_func_id, rot_func_id);
+    TC_IO(rigid_force_tmp, rigid_torque_tmp);  // added
+    TC_IO(rigid_force, rigid_torque);  // added
   }
 
   RigidBody() {
@@ -91,6 +97,8 @@ struct RigidBody {
     color = Vector3(0.5_f);
     mesh_to_centroid = MatrixP::identidy();
     mut = std::make_unique<std::mutex>();
+    rigid_force = Vector(0.0f);  // added
+    rigid_torque = Vector(0.0f);  // added
   }
 
   void set_as_background() {
@@ -144,6 +152,7 @@ struct RigidBody {
     return ret;
   }
 
+  // calculate impulses from particles -----------------------------------------
   void apply_tmp_impulse(Vector impulse, Vector orig) {
     mut->lock();
 
@@ -161,26 +170,54 @@ struct RigidBody {
                                     1);
   }
 
-  void advance(real t, real dt) {
+  void advance(real t, real dt, int free_axis_in_position) {
+    // if scripted position ----------------------------------------------------
     if (pos_func) {
-      position = pos_func(t);
-      real d = 1e-4_f;
-      velocity = (pos_func(t + d) - pos_func(t - d)) / (2.0_f * d);
+
+      // added: consider one free axis when scripting position in 2 other axes
+      Vector vel, pos;
+      pos = pos_func(t);
+      vel = (pos_func(t + dt) - pos_func(t - dt)) / (2.0_f * dt);
+      for (int i = 0; i < dim; i++){
+        if (i == free_axis_in_position-1){
+          if (velocity[i] > 0.0_f){
+            // velocity[i] *= std::exp(-linear_damping*10 * dt);
+            velocity[i] = 0.0_f;
+          }else{
+            velocity[i] *= std::exp(-linear_damping * dt);
+          }
+          position[i] += velocity[i] * dt;
+        }else{
+          position[i] = pos[i];
+          velocity[i] = vel[i];
+        }
+      }
       real vel_mag = length(velocity);
+
+      // removed:
+      // position = pos_func(t);
+      // real d = 1e-4_f;  // time difference
+      // velocity = (pos_func(t + d) - pos_func(t - d)) / (2.0_f * d);
+      // real vel_mag = length(velocity);
+
       if (velocity.abs_max() > 50.0_f) {
         TC_WARN(
             "Position not differentiable at time {}. (Magnitude {} at d = {})",
-            t, vel_mag, d);
+            t, vel_mag, dt);
         velocity = Vector(0);
       }
+    // if not
     } else {
       velocity *= std::exp(-linear_damping * dt);
       position += velocity * dt;
     }
+
+    // if scripted rotation ----------------------------------------------------
     if (rot_func) {
+      // 3d
       TC_STATIC_IF(dim == 3) {
         auto rot_quat = [&](real t) {
-          Vector r = radians(this->rot_func(t));
+          Vector r = radians(this->rot_func(t)); // radian
           Eigen::AngleAxis<real> angleAxisX(r[0],
                                             Eigen::Matrix<real, 3, 1>::UnitX());
           Eigen::AngleAxis<real> angleAxisY(r[1],
@@ -191,7 +228,7 @@ struct RigidBody {
           return quat;
         };
         rotation.value = rot_quat(t);
-        real d = 1e-3_f;
+        real d = dt;  // was 1e-3_f
         Eigen::AngleAxis<real> angle_axis =
             Eigen::AngleAxis<real>(rot_quat(t + d) * rot_quat(t - d).inverse());
         angle_axis.angle() *= (0.5_f / d);
@@ -209,10 +246,11 @@ struct RigidBody {
           }
         }
       }
+      // 2d
       TC_STATIC_ELSE {
         auto rot_quat = [&](real t) { return radians(this->rot_func(t)); };
         rotation.value = rot_quat(t);
-        real d = 1e-4_f;
+        real d = dt; // 1e-4_f;
         real rot = 0.5_f * (rot_quat(t + d) - rot_quat(t - d)) / d;
         real len_rot = abs(rot);
         if (len_rot > 1000.0_f) {
@@ -226,6 +264,8 @@ struct RigidBody {
         }
       }
       TC_STATIC_END_IF
+
+    // if not
     } else {
       angular_velocity.value *= std::exp(-angular_damping * dt);
       rotation.apply_angular_velocity(angular_velocity, dt);
