@@ -223,6 +223,7 @@ class MPM:
     elif clear_output_directory:
       self.clear_output_directory()
     # do main cycle
+    self.visualize()
     while self.c.frame < self.num_frames:
       print('Simulating frame {}'.format(self.c.frame + 1))
       for k in range(update_frequency):
