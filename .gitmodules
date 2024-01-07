@@ -6,4 +6,5 @@
 	url = https://github.com/glfw/glfw
 [submodule "projects/mpm"]
 	path = projects/mpm
-	url = https://github.com/RootlessGrass/taichi_mpm.git
+	url = git@github.com:RootlessGrass/taichi_mpm.git
+	branch=develop

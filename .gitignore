@@ -45,6 +45,7 @@ tmp/
 cmake-build-*
 /projects/*
 !/projects/examples
+!/projects/mpm
 modules.txt
 /external/lib
 __pycache__
