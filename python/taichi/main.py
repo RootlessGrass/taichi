@@ -6,11 +6,6 @@ import random
 from taichi.tools.video import make_video, interpolate_frames
 from taichi.core.util import get_projects, activate_package, deactivate_package
 
-packages = {
-  'mpm': 'https://github.com/yuanming-hu/taichi_mpm',
-  'wushi': 'https://github.com/yuanming-hu/taichi_wushi'
-}
-
 def run_pytest():
   print("\nRunning python tests...\n")
   from pathlib import Path
@@ -172,17 +167,6 @@ def main(debug=False):
     plot(sys.argv[2])
   elif mode == "update":
     tc.core.update(True)
-    tc.core.build()
-  elif mode == "install":
-    os.chdir(tc.get_directory('projects'))
-    pkg = sys.argv[2]
-    if pkg not in packages:
-      url = pkg
-      pkg = pkg.split('/')[-1]
-    else:
-      url = packages[pkg]
-    tc.info('Cloning and building package {}...'.format(pkg))
-    os.system('git clone {} {}'.format(url, pkg))
     tc.core.build()
   elif mode == "asm":
     fn = sys.argv[2]

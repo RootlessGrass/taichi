@@ -52,7 +52,7 @@ if (NOT WIN32)
         message("Runtimes exist.")
     else()
         message("Fetching runtimes..")
-        execute_process(COMMAND git clone https://github.com/yuanming-hu/taichi_runtime ${CMAKE_CURRENT_SOURCE_DIR}/external/lib)
+        execute_process(COMMAND git clone https://github.com/RootlessGrass/taichi_runtime ${CMAKE_CURRENT_SOURCE_DIR}/external/lib)
     endif()
     if (APPLE)
         # OS X

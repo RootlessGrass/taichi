@@ -1,6 +1,9 @@
 [submodule "assets"]
 	path = assets
-	url = https://github.com/yuanming-hu/taichi_assets
+	url = https://github.com/RootlessGrass/taichi_assets
 [submodule "external/glfw"]
 	path = external/glfw
 	url = https://github.com/glfw/glfw
+[submodule "projects/mpm"]
+	path = projects/mpm
+	url = https://github.com/RootlessGrass/taichi_mpm.git
